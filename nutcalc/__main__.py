@@ -20,11 +20,25 @@ def parse_and_execute(interpreter, path):
             )
         interpreter.load_module(path, module)
 
+INTERACTIVE = False
+
 try:
-    for arg in sys.argv[1:]:
-        parse_and_execute(interpreter, arg)
+    i = 1
+    while i < len(sys.argv) - 1:
+        arg = sys.argv[i]
+        if arg == '-i':
+            INTERACTIVE = True
+        if arg == '-c':
+            stmt = parser.stmt.parse(sys.argv[i+1])
+            interpreter.execute(stmt)
+            i += 1
+        else:
+            parse_and_execute(interpreter, arg)
+        i += 1
+
 except InterpretationError as e:
     print('error:', e)
     sys.exit(1)
 else:
-    repl.start(interpreter)
+    if INTERACTIVE:
+        repl.start(interpreter)
