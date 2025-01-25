@@ -1,5 +1,5 @@
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from typing import NewType
 
 Row = NewType('Row', int)
@@ -18,142 +18,77 @@ class SourceSpan:
         ])
 
 @dataclass
+class Located:
+    @property
+    def filename(self):
+        if self.location is None:
+            return None
+        else:
+            return self.location.filename
+
+    @filename.setter
+    def filename(self, x):
+        if self.location is not None:
+            self.location.filename = x
+
+        for field in fields(self):
+            attr = getattr(self, field.name)
+            if isinstance(attr, Located):
+                attr.filename = x
+            elif isinstance(attr, list) and len(attr):
+                for elem in attr:
+                    if isinstance(elem, Located):
+                        elem.filename = x
+
+def located(cls):
+    @dataclass
+    class ClsWithLocation(cls, Located):
+        location: SourceSpan | None = None
+    ClsWithLocation.__name__ = cls.__name__ + 'WithLocation'
+    return ClsWithLocation
+
+@located
+@dataclass
 class FoodStmt:
     lhs: QuantifiedFood
     weight: Quantity | None
     body: Expr
 
-    location: SourceSpan | None = None
 
-    @property
-    def filename(self):
-        if self.location is None:
-            return None
-        else:
-            return self.location.filename
-
-    @filename.setter
-    def filename(self, x):
-        if self.location is not None:
-            self.location.filename = x
-        self.lhs.filename = x
-        if self.weight is not None:
-            self.weight.filename = x
-        self.body.filename = x
-
+@located
 @dataclass
 class WeightStmt:
     lhs: QuantifiedFood
     rhs: QuantifiedFood
 
-    location: SourceSpan | None = None
-
-    @property
-    def filename(self):
-        if self.location is None:
-            return None
-        else:
-            return self.location.filename
-
-    @filename.setter
-    def filename(self, x):
-        if self.location is not None:
-            self.location.filename = x
-        self.lhs.filename = x
-        self.rhs.filename = x
-
+@located
 @dataclass
 class PrintStmt:
     body: Expr
 
-    location: SourceSpan | None = None
-
-    @property
-    def filename(self):
-        if self.location is None:
-            return None
-        else:
-            return self.location.filename
-
-    @filename.setter
-    def filename(self, x):
-        if self.location is not None:
-            self.location.filename = x
-        self.lhs.filename = x
-        self.rhs.filename = x
-
+@located
 @dataclass
 class ImportStmt:
     path: str
 
-    location: SourceSpan | None = None
-
-    @property
-    def filename(self):
-        if self.location is None:
-            return None
-        else:
-            return self.location.filename
-
-    @filename.setter
-    def filename(self, x):
-        if self.location is not None:
-            self.location.filename = x
-
-# @dataclass
-# class EatStmt:
-#     body: Expr
-#
-# @dataclass
-# class SleepStmt:
-#     pass
-
 Stmt = FoodStmt | WeightStmt | PrintStmt
 
+@located
 @dataclass
 class Quantity:
     count: float
     unit: str
 
-    location: SourceSpan | None = None
-
-    @property
-    def filename(self):
-        if self.location is None:
-            return None
-        else:
-            return self.location.filename
-
-    @filename.setter
-    def filename(self, x):
-        if self.location is not None:
-            self.location.filename = x
-
+@located
 @dataclass
 class QuantifiedFood:
     quantity: Quantity
     food: str
 
-    location: SourceSpan | None = None
-
-    @property
-    def filename(self):
-        if self.location is None:
-            return None
-        else:
-            return self.location.filename
-
-    @filename.setter
-    def filename(self, x):
-        if self.location is not None:
-            self.location.filename = x
-        self.quantity.filename = x
-
+@located
 @dataclass
 class Expr:
     items: list[QuantifiedFood]
-
-    location: SourceSpan | None = None
 
     def __iter__(self):
         return iter(self.items)
@@ -164,20 +99,7 @@ class Expr:
     def __getitem__(self, i):
         return self.items[i]
 
-    @property
-    def filename(self):
-        if self.location is None:
-            return None
-        else:
-            return self.location.filename
-
-    @filename.setter
-    def filename(self, x):
-        if self.location is not None:
-            self.location.filename = x
-        for item in self.items:
-            item.filename = x
-
+@located
 @dataclass
 class Module:
     imports: list[ImportStmt]

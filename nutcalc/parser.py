@@ -1,15 +1,50 @@
 from .syntax import *
 
-from parsy import generate, string, regex, alt, seq, char_from, digit, fail
+from parsy import (
+    ParseError,
+    alt,
+    char_from,
+    digit,
+    fail,
+    generate,
+    regex,
+    seq,
+    string,
+)
 
-def file_module(f):
+@dataclass
+class LocatedParseError(RuntimeError):
+    parse_error: ParseError
+    source: str
+
+    def __str__(self):
+        expected_list = sorted(repr(e) for e in self.parse_error.expected)
+        return f'{self.source}:{self.parse_error.line_info()}: expected ' + \
+            (f'one of {', '.join(expected_list)}'
+             if len(expected_list) > 1 else
+             expected_list[0])
+
+def parse_module(f, source=None):
     """Parses an entire file. Returns a Module."""
     contents = f.read() # XXX find a way to avoid buffering the whole file
-    return (junk >> module).parse(contents)
+    try:
+        result = (junk >> module).parse(contents)
+    except ParseError as e:
+        raise LocatedParseError(e, '<unknown>' if source is None else source)
+    else:
+        if source is not None:
+            for stmt in result.body:
+                stmt.filename = source
+        return result
 
-def line(line: str):
+def parse_stmt(line: str, source=None):
     """Parses one statement."""
-    return (junk >> stmt).parse(line)
+    try:
+        result = (junk >> stmt).parse(line)
+        result.filename = source
+        return result
+    except ParseError as e:
+        raise LocatedParseError(e, '<unknown>' if source is None else source)
 
 ### LEXING ############################################################
 
@@ -18,7 +53,7 @@ lexeme = lambda p: p << junk
 
 line_comment = (string('#') << regex('[^\n]*') << space.many()).many()
 
-junk = space.many() << line_comment.optional()
+junk = (space.many() << line_comment.optional())
 
 point = string('.')
 digits = digit.at_least(1).concat()

@@ -1,5 +1,7 @@
 from . import syntax
 from . import model
+from . import config
+from .log import log
 
 from dataclasses import dataclass
 from typing import NewType
@@ -110,7 +112,7 @@ class Interpreter:
                     reference=lhs_qty,
                 )
                 self.foodDB.register(food, location=stmt.lhs.location)
-                return
+                log(f'defined food {stmt.lhs.food}, ref qty {lhs_qty}')
             else:
                 # forbid stuff like `20 g foo weighs 25 g = ...`
                 raise InterpretationError(
@@ -130,6 +132,7 @@ class Interpreter:
                     ),
                     location=stmt.location,
                 )
+                log(f'defined food {stmt.lhs.food} from constituent sum')
             else:
                 # e.g. `1 x foo weighs 20 g = ...`
                 weight = self._quantity(stmt.weight)
@@ -141,7 +144,10 @@ class Interpreter:
                 )
                 self._define_unit(food, lhs_qty, weight)
                 self.foodDB.register(food, location=stmt.location)
-                return
+                log(
+                    f'defined food {stmt.lhs.food} @ qty {lhs_qty} '
+                    f'weight {weight}'
+                )
 
     def _weight_stmt(self, stmt: syntax.WeightStmt):
         lhs_food = self.foodDB.get(stmt.lhs.food)
