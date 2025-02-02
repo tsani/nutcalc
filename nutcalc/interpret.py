@@ -176,7 +176,7 @@ class Interpreter:
         validating its unit against a supplied food."""
         if food is not None and qty.unit not in (u.name for u in food.units):
             raise InterpretationError(
-                f'unit {qty.unit} does not exit for food {food.name}',
+                f'unit {qty.unit} does not exist for food {food.name}',
                 location=qty.location,
             )
         return model.Quantity(qty.count, qty.unit)
