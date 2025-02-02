@@ -61,8 +61,9 @@ class FoodDB:
 ###############################################################################
 
 class Interpreter:
-    def __init__(self, foodDB: FoodDB | None = None, verbose=False):
-        self.verbose = verbose
+    def __init__(self, foodDB: FoodDB | None = None, output_stream=None):
+        self.output_stream = \
+            sys.stdout if output_stream is None else output_stream
         if foodDB is None:
             self.foodDB = FoodDB()
         self.modules = set()
@@ -98,7 +99,7 @@ class Interpreter:
         print(sum(
             (qf.nutrition_facts for qf in qfs),
             start=model.NutritionFacts.empty(),
-        ).pretty)
+        ).pretty, file=self.output_stream)
 
     def _food_stmt(self, stmt: syntax.FoodStmt):
         lhs_qty = self._quantity(stmt.lhs.quantity)
