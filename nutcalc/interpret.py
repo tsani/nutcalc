@@ -1,13 +1,15 @@
 from . import syntax
 from . import model
 from . import config
+from .error import NutcalcError
 from .log import log
 
 from dataclasses import dataclass
 from typing import NewType
 import os.path as ospath
+import sys
 
-class InterpretationError(RuntimeError):
+class InterpretationError(NutcalcError):
     def __init__(self, msg, location=None, **kwargs):
         self.location = location
         self.msg = msg

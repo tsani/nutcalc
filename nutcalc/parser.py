@@ -1,4 +1,5 @@
 from .syntax import *
+from .error import NutcalcError
 
 from parsy import (
     ParseError,
@@ -13,7 +14,7 @@ from parsy import (
 )
 
 @dataclass
-class LocatedParseError(RuntimeError):
+class LocatedParseError(NutcalcError):
     parse_error: ParseError
     source: str
 
