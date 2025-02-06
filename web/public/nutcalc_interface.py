@@ -50,7 +50,7 @@ class Nutcalc:
                     })
 
             case { 'type': 'load-module', 'name': name, 'contents': contents }:
-                self._run_load_module(request, self._load_module(name, contents))
+                self._load_root_module(request, name, contents)
             
             case _:
                 respond_to(request, {
@@ -85,7 +85,7 @@ class Nutcalc:
                     raise ModuleLoopError(name, set(loading))
                 new_contents = yield imp.path
                 yield from _load_module(imp.path, new_contents)
-            self.interpreter.load_module(name, contents)
+            self.interpreter.load_module(name, module)
             loading.remove(name)
             
         # lm_it therefore emits a sequence of module names needing to be loaded
@@ -144,7 +144,7 @@ def handle_nutcalc_request(e):
     
 @bind(document, 'nutcalc_reset')
 def handle_nutcalc_reset(*e):
-    global NUTCALC    
+    global NUTCALC
     NUTCALC = Nutcalc()
     emit(True, 'nutcalc_ready')
 

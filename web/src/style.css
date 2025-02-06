@@ -1,18 +1,43 @@
-div#main {
+* {
+    box-sizing: border-box;
+}
+
+html {
+    height: 100%;
+}
+
+body {
+    max-width: 12in;
+    height: 100%;
+    margin: 0 auto;
+}
+
+#app {
+    display: flex;
+    flex-flow: column nowrap;
+    min-height: 100%;
+}
+
+#app > * {
+    flex-grow: 0;
+}
+
+#main {
     display: flex;
     flex-flow: row nowrap;
-    align-items: first;
+    align-items: top;
     justify-content: space-between;
     width: 100%;
+    flex-grow: 1;
+}
+
+.nutcalc-editor {
+    width: 65%;
     height: 80vh;
 }
 
-div#main > :first-child {
-    width: 75%;
-    height: 100%;
-}
-
-div#main > :last-child {
-    width: 20%;
-    height: 100%;
+.nutcalc-repl {
+    background: black;
+    padding: 4px;
+    width: 30%;
 }
