@@ -9,88 +9,98 @@ const RIGHT_ARROW = "\x1B[C";
 const UP_ARROW = "\x1B[A";
 const DOWN_ARROW = "\x1B[B";
 
-export default function Repl({ onLineEnter: handleLineEnter }) {
-  const terminalRef = useRef(null);
-  const xterm = useRef(null);
-  const history = useRef([]);
-  const inputBuffer = useRef("");
-  const cursorPosition = useRef(0);
-  const historyIndex = useRef(-1);
+export interface ReplManager {
+  /** Directly write to the underlying xterm instance. */
+  write(contents: string): void;
 
-  useEffect(() => {
-    if (!terminalRef.current) return;
-
-    xterm.current = new Terminal({
-      cursorBlink: true,
-      rows: 24,
-    });
-
-    xterm.current.open(terminalRef.current);
-    xterm.current.write("Welcome to Nutcalc!\r\n\r\n> ");
-
-    xterm.current.onData(handleInput);
-
-    return () => {
-      xterm.current.dispose();
-    };
-  }, []);
-
-  /** Changes the current input mode.
-   * The given callback runs on the next tick.
+  /** High-level write that turns \n into \r\n, and accounts for the
+   * user possibly being in the middle of writing an input.
    */
+  paste(contents: string): void;
+
+  /** Register a callback to run whenever wants to run a completed input.
+   * The resulting string is pasted into the terminal.
+   */
+  onLineEnter(callback: (line: string) => string): void;
+
+  /** Destroy the underlying xterm instance. */
+  dispose(): void;
+
+  /** Focuses the REPL. */
+  focus(): void;
+}
+
+const ReplManager = (xterm): ReplManager => {
+  const history = [];
+  let inputBuffer = "";
+  let cursorPosition = 0;
+  let historyIndex = -1;
+  let inputMode = "userInput";
+  let handleLineEnter = null;
+
+  const replaceCurrentInput = (newInput) => {
+    while (cursorPosition > 0) {
+      xterm.current.write("\b \b");
+      cursorPosition--;
+    }
+    inputBuffer = newInput;
+    cursorPosition = newInput.length;
+    xterm.current.write(newInput);
+  };
+
   function switchInputMode(newMode, cb=undefined) {
-    inputMode.current = newMode;
+    inputMode = newMode;
     if ('undefined' !== typeof(cb)) setTimeout(() => cb(), 0);
   }
 
   const baseKeyHandler = {
     [BACKSPACE]: () => {
-      if (0 === cursorPosition.current) return;
+      if (0 === cursorPosition) return;
 
-      inputBuffer.current =
-        inputBuffer.current.slice(0, cursorPosition.current - 1) +
-        inputBuffer.current.slice(cursorPosition.current);
-      cursorPosition.current--;
-      const remainder = inputBuffer.current.slice(cursorPosition.current);
-      xterm.current.write(
+      inputBuffer =
+        inputBuffer.slice(0, cursorPosition - 1) +
+        inputBuffer.slice(cursorPosition);
+      cursorPosition--;
+      const remainder = inputBuffer.slice(cursorPosition);
+      xterm.write(
         "\b" + remainder + " \b" + times(remainder.length, LEFT_ARROW)
       );
     },
 
     [LEFT_ARROW]: () => {
-      if (0 === cursorPosition.current) return;
+      if (0 === cursorPosition) return;
 
-      cursorPosition.current--;
-      xterm.current.write(LEFT_ARROW);
+      cursorPosition--;
+      xterm.write(LEFT_ARROW);
     },
 
     [RIGHT_ARROW]: () => {
-      if (cursorPosition.current === inputBuffer.current.length) return;
+      if (cursorPosition === inputBuffer.length) return;
 
-      cursorPosition.current++;
-      xterm.current.write(RIGHT_ARROW);
+      cursorPosition++;
+      xterm.write(RIGHT_ARROW);
     },
 
     [UP_ARROW]: () => {
-      if (0 === history.current.length) return;
+      if (0 === history.length) return;
 
-      if (historyIndex.current === -1) {
-        historyIndex.current = history.current.length - 1;
-      } else if (historyIndex.current > 0) {
-        historyIndex.current--;
+      if (historyIndex === -1) {
+        historyIndex = history.length - 1;
+      } else if (historyIndex > 0) {
+        historyIndex--;
       }
-      replaceCurrentInput(history.current[historyIndex.current]);
+      replaceCurrentInput(history[historyIndex]);
     },
 
     [DOWN_ARROW]: () => {
-      if (0 === history.current.length) return;
-      if (-1 === historyIndex.current) return;
+      if (0 === history.length) return;
+      if (-1 === historyIndex) return;
 
-      if (historyIndex.current + 1 < history.current.length) {
-        historyIndex.current++;
-        replaceCurrentInput(history.current[historyIndex.current]);
+      if (historyIndex + 1 < history.length) {
+        historyIndex++;
+        replaceCurrentInput(history[historyIndex]);
       } else {
-        historyIndex.current = -1;
+        historyIndex = -1;
         replaceCurrentInput("");
       }
     },
@@ -101,42 +111,42 @@ export default function Repl({ onLineEnter: handleLineEnter }) {
 
     // For user input, the enter key is very special
     '\r': () => {
-      history.current.push(inputBuffer.current);
-      historyIndex.current = -1;
-      xterm.current.write("\r\n");
+      history.push(inputBuffer);
+      historyIndex = -1;
+      xterm.write("\r\n");
 
       switchInputMode('blocked', async () => {
         let output;
         try {
-          output = await handleLineEnter(inputBuffer.current)
+          console.log('hi');
+          output = await handleLineEnter(inputBuffer)
         } catch(e) {
           output = 'undefined' === typeof(e) ?
             'Unknown error :(' :
             `Error: ${e?.toString() ?? 'unknown'}`;
         }
         switchInputMode("pasteInput");
-        xterm.current.input(output);
-        xterm.current.write("\r\n> ");
+        xterm.input(output);
+        xterm.write("\r\n> ");
         switchInputMode("userInput");
-        inputBuffer.current = "";
-        cursorPosition.current = 0;
+        inputBuffer = "";
+        cursorPosition = 0;
       });
     },
   };
 
-  const inputMode = useRef('userInput'); // one of the keys in the following object
   const inputHandler = {
     userInput: (input) => {
       const handler = userInputKeyHandler[input];
       if ('undefined' !== typeof(handler))
         return handler(input);
 
-      inputBuffer.current =
-        inputBuffer.current.slice(0, cursorPosition.current) +
+      inputBuffer =
+        inputBuffer.slice(0, cursorPosition) +
         input +
-        inputBuffer.current.slice(cursorPosition.current);
-      xterm.current.write(inputBuffer.current.slice(cursorPosition.current));
-      cursorPosition.current++;
+        inputBuffer.slice(cursorPosition);
+      xterm.write(inputBuffer.slice(cursorPosition));
+      cursorPosition++;
     },
 
     // blocked mode ignores all input
@@ -145,21 +155,68 @@ export default function Repl({ onLineEnter: handleLineEnter }) {
     },
 
     pasteInput: (input) => {
-      xterm.current.write(input.replace(/\n/g, '\r\n'));
+      console.log('input', input);
+      xterm.write(input.replace(/\n/g, '\r\n'));
     },
   };
 
-  const handleInput = (input) => inputHandler[inputMode.current](input);
+  xterm.onData((input) => inputHandler[inputMode](input));
 
-  const replaceCurrentInput = (newInput) => {
-    while (cursorPosition.current > 0) {
-      xterm.current.write("\b \b");
-      cursorPosition.current--;
+  return {
+    write(contents) {
+      xterm.write(contents);
+    },
+
+    paste(contents) {
+      const oldInputMode = inputMode;
+      xterm.write("\r\n");
+      switchInputMode('pasteInput');
+      xterm.input(contents);
+      xterm.write("\r\n> ");
+      if (inputBuffer.length) {
+        xterm.write(inputBuffer);
+        xterm.write(times(inputBuffer.length - cursorPosition, '\b'));
+      }
+      switchInputMode(oldInputMode);
+    },
+
+    onLineEnter(callback) {
+      handleLineEnter = callback;
+    },
+
+    dispose() {
+      xterm.dispose();
+    },
+
+    focus() {
+      xterm.focus();
     }
-    inputBuffer.current = newInput;
-    cursorPosition.current = newInput.length;
-    xterm.current.write(newInput);
   };
+};
+
+export default function Repl({
+  onLineEnter: handleLineEnter,
+  onLoaded: handleLoaded,
+}) {
+  const terminalRef = useRef(null);
+
+  useEffect(() => {
+    if (!terminalRef.current) return;
+
+    const xterm= new Terminal({
+      cursorBlink: true,
+      rows: 24,
+    });
+
+    xterm.open(terminalRef.current);
+    const repl = ReplManager(xterm);
+    repl.write("Welcome to Nutcalc!\r\n\r\n> ");
+    repl.onLineEnter(handleLineEnter);
+    handleLoaded?.(repl);
+    return () => {
+      repl.dispose();
+    };
+  }, [terminalRef]);
 
   return <div class="nutcalc-repl" ref={terminalRef} />;
 }

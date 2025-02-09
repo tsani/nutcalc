@@ -2,27 +2,34 @@ import { render } from "preact";
 import { useRef, useState, useEffect } from "preact/hooks";
 
 import Editor, { useMonaco, loader } from "@monaco-editor/react";
+import * as monaco from 'monaco-editor';
 
-import Repl from './Repl';
+import Repl, { ReplManager } from './Repl';
 
 import "./style.css";
 
 export function App() {
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
-  const [output, setOutput] = useState('');
+  const repl = useRef(null);
   const continuations = useRef(new Map());
   const nutcalcReady = useRef(undefined);
   // ^ otherwise holds a resolve/reject pair for a promise waiting for nutcalc to ready
 
-  function handleEditorMount(editor, monaco) {
+  function handleEditorMount(editor, monacoInstance) {
     editorRef.current = editor;
-    monacoRef.current = monaco;
+    monacoRef.current = monacoInstance;
+
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, async () => {
+      await loadRootModule();
+      repl.current?.focus();
+    });
   }
 
   useEffect(() => {
     document.addEventListener("nutcalc_from", handleFromNutcalc);
     document.addEventListener("nutcalc_ready", handleNutcalcReady);
+
     return () => {
       document.removeEventListener("nutcalc_from", handleFromNutcalc);
       document.removeEventListener("nutcalc_ready", handleNutcalcReady);
@@ -48,6 +55,7 @@ export function App() {
         }
         const payload = msg.data;
         const k = continuations.current.get(msg['of']);
+        continuations.current.set(msg['of'], null);
         return payload.success ?
           k.onSuccess(payload.data) :
           k.onFailure(payload.error)
@@ -87,11 +95,31 @@ export function App() {
       }),
   };
 
-  const handleLineEnter = (line: string) => nutcalc.eval('lineEnter', line);
-
-  const handleLoadButtonClick = async () => {
+  async function loadModule(name: string, contents: string): Promise<void> {
     await nutcalc.reset();
-    await nutcalc.loadModule('loadModule', 'root', editorRef.current.getValue());
+    let output = "";
+    try {
+      output = await nutcalc.loadModule(
+        'loadModule',
+        'root',
+        editorRef.current.getValue() ?? '',
+      );
+    } catch(e) {
+      output = e?.toString();
+    }
+    output = output || 'Module loaded'
+    repl.current?.paste(output);
+  }
+
+  const loadRootModule = () => loadModule('root', editorRef.current.getValue() ?? '');
+
+  const handleLineEnter = (line: string) => {
+    console.log('got line enter', line);
+    return nutcalc.eval('lineEnter', line);
+  }
+
+  const handleReplLoaded = (manager: ReplManager) => {
+    repl.current = manager;
   };
 
   return (
@@ -103,9 +131,9 @@ export function App() {
             options={EDITOR_OPTIONS}
             onMount={handleEditorMount}
           />
-          <button onClick={handleLoadButtonClick}>Load</button>
+          <button onClick={loadRootModule}>Load</button>
         </div>
-        <Repl onLineEnter={handleLineEnter} />
+        <Repl onLineEnter={handleLineEnter} onLoaded={handleReplLoaded} />
       </div>
     </>
   );
