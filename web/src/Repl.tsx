@@ -8,6 +8,7 @@ const LEFT_ARROW = "\x1B[D";
 const RIGHT_ARROW = "\x1B[C";
 const UP_ARROW = "\x1B[A";
 const DOWN_ARROW = "\x1B[B";
+const CTRL_C = "\x03"; // ASCII ETX (end-of-text)
 
 export interface ReplManager {
   /** Directly write to the underlying xterm instance. */
@@ -23,6 +24,9 @@ export interface ReplManager {
    */
   onLineEnter(callback: (line: string) => string): void;
 
+  /** Registers a callback to run when the user requests to leave the terminal. */
+  onEscape(calback: () => void): void;
+
   /** Destroy the underlying xterm instance. */
   dispose(): void;
 
@@ -37,6 +41,7 @@ const ReplManager = (xterm): ReplManager => {
   let historyIndex = -1;
   let inputMode = "userInput";
   let handleLineEnter = null;
+  let handleEscape = null;
 
   const replaceCurrentInput = (newInput) => {
     while (cursorPosition > 0) {
@@ -133,6 +138,16 @@ const ReplManager = (xterm): ReplManager => {
         cursorPosition = 0;
       });
     },
+
+    [CTRL_C]: () => {
+      if (inputBuffer.length) {
+        historyIndex = -1;
+        xterm.write("\r\n> ");
+        inputBuffer = '';
+        cursorPosition = 0;
+      }
+      handleEscape?.();
+    },
   };
 
   const inputHandler = {
@@ -184,6 +199,10 @@ const ReplManager = (xterm): ReplManager => {
       handleLineEnter = callback;
     },
 
+    onEscape(callback) {
+      handleEscape = callback;
+    },
+
     dispose() {
       xterm.dispose();
     },
@@ -197,6 +216,7 @@ const ReplManager = (xterm): ReplManager => {
 export default function Repl({
   onLineEnter: handleLineEnter,
   onLoaded: handleLoaded,
+  onEscape: handleEscape,
 }) {
   const terminalRef = useRef(null);
 
@@ -212,6 +232,7 @@ export default function Repl({
     const repl = ReplManager(xterm);
     repl.write("Welcome to Nutcalc!\r\n\r\n> ");
     repl.onLineEnter(handleLineEnter);
+    repl.onEscape(handleEscape);
     handleLoaded?.(repl);
     return () => {
       repl.dispose();
