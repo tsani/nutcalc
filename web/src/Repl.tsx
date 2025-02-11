@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from "preact/hooks";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
@@ -53,9 +52,9 @@ const ReplManager = (xterm): ReplManager => {
     xterm.current.write(newInput);
   };
 
-  function switchInputMode(newMode, cb=undefined) {
+  function switchInputMode(newMode, cb = undefined) {
     inputMode = newMode;
-    if ('undefined' !== typeof(cb)) setTimeout(() => cb(), 0);
+    if ("undefined" !== typeof cb) setTimeout(() => cb(), 0);
   }
 
   const baseKeyHandler = {
@@ -68,7 +67,7 @@ const ReplManager = (xterm): ReplManager => {
       cursorPosition--;
       const remainder = inputBuffer.slice(cursorPosition);
       xterm.write(
-        "\b" + remainder + " \b" + times(remainder.length, LEFT_ARROW)
+        "\b" + remainder + " \b" + times(remainder.length, LEFT_ARROW),
       );
     },
 
@@ -115,20 +114,21 @@ const ReplManager = (xterm): ReplManager => {
     ...baseKeyHandler,
 
     // For user input, the enter key is very special
-    '\r': () => {
+    "\r": () => {
       history.push(inputBuffer);
       historyIndex = -1;
       xterm.write("\r\n");
 
-      switchInputMode('blocked', async () => {
+      switchInputMode("blocked", async () => {
         let output;
         try {
-          console.log('hi');
-          output = await handleLineEnter(inputBuffer)
-        } catch(e) {
-          output = 'undefined' === typeof(e) ?
-            'Unknown error :(' :
-            `Error: ${e?.toString() ?? 'unknown'}`;
+          console.log("hi");
+          output = await handleLineEnter(inputBuffer);
+        } catch (e) {
+          output =
+            "undefined" === typeof e
+              ? "Unknown error :("
+              : `Error: ${e?.toString() ?? "unknown"}`;
         }
         switchInputMode("pasteInput");
         xterm.input(output);
@@ -143,7 +143,7 @@ const ReplManager = (xterm): ReplManager => {
       if (inputBuffer.length) {
         historyIndex = -1;
         xterm.write("\r\n> ");
-        inputBuffer = '';
+        inputBuffer = "";
         cursorPosition = 0;
       }
       handleEscape?.();
@@ -153,8 +153,7 @@ const ReplManager = (xterm): ReplManager => {
   const inputHandler = {
     userInput: (input) => {
       const handler = userInputKeyHandler[input];
-      if ('undefined' !== typeof(handler))
-        return handler(input);
+      if ("undefined" !== typeof handler) return handler(input);
 
       inputBuffer =
         inputBuffer.slice(0, cursorPosition) +
@@ -170,8 +169,8 @@ const ReplManager = (xterm): ReplManager => {
     },
 
     pasteInput: (input) => {
-      console.log('input', input);
-      xterm.write(input.replace(/\n/g, '\r\n'));
+      console.log("input", input);
+      xterm.write(input.replace(/\n/g, "\r\n"));
     },
   };
 
@@ -185,12 +184,12 @@ const ReplManager = (xterm): ReplManager => {
     paste(contents) {
       const oldInputMode = inputMode;
       xterm.write("\r\n");
-      switchInputMode('pasteInput');
+      switchInputMode("pasteInput");
       xterm.input(contents);
       xterm.write("\r\n> ");
       if (inputBuffer.length) {
         xterm.write(inputBuffer);
-        xterm.write(times(inputBuffer.length - cursorPosition, '\b'));
+        xterm.write(times(inputBuffer.length - cursorPosition, "\b"));
       }
       switchInputMode(oldInputMode);
     },
@@ -209,7 +208,7 @@ const ReplManager = (xterm): ReplManager => {
 
     focus() {
       xterm.focus();
-    }
+    },
   };
 };
 
@@ -223,7 +222,7 @@ export default function Repl({
   useEffect(() => {
     if (!terminalRef.current) return;
 
-    const xterm= new Terminal({
+    const xterm = new Terminal({
       cursorBlink: true,
       rows: 24,
     });

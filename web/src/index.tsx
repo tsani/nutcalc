@@ -2,9 +2,9 @@ import { render } from "preact";
 import { useRef } from "preact/hooks";
 
 import Editor, { useMonaco, loader } from "@monaco-editor/react";
-import * as monaco from 'monaco-editor';
+import * as monaco from "monaco-editor";
 
-import Repl, { ReplManager } from './Repl';
+import Repl, { ReplManager } from "./Repl";
 import useNutcalc from "./hooks/useNutcalc";
 
 import "./style.css";
@@ -15,16 +15,23 @@ export function App() {
   const monacoRef = useRef(null);
   const repl = useRef(null);
   const nutcalc = useNutcalc();
-  const [editorContent, setEditorContent] = useLocalStorage('editor-module-root', '', 1000);
+  const [editorContent, setEditorContent] = useLocalStorage(
+    "editor-module-root",
+    "",
+    1000,
+  );
 
   function handleEditorMount(editor, monacoInstance) {
     editorRef.current = editor;
     monacoRef.current = monacoInstance;
 
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, async () => {
-      await loadRootModule();
-      repl.current?.focus();
-    });
+    editor.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
+      async () => {
+        await loadRootModule();
+        repl.current?.focus();
+      },
+    );
 
     editor.onDidChangeModelContent(() => {
       setEditorContent(editor.getValue());
@@ -36,18 +43,19 @@ export function App() {
     let output = "";
     try {
       output = await nutcalc.loadModule(
-        'loadModule',
-        'root',
-        editorRef.current.getValue() ?? '',
+        "loadModule",
+        "root",
+        editorRef.current.getValue() ?? "",
       );
-    } catch(e) {
+    } catch (e) {
       output = e?.toString();
     }
-    output = output || 'Module loaded'
+    output = output || "Module loaded";
     repl.current?.paste(output);
   }
 
-  const loadRootModule = () => loadModule('root', editorRef.current.getValue() ?? '');
+  const loadRootModule = () =>
+    loadModule("root", editorRef.current.getValue() ?? "");
 
   return (
     <>
@@ -62,9 +70,10 @@ export function App() {
           <button onClick={loadRootModule}>Load</button>
         </div>
         <Repl
-          onLineEnter={(line: string) => nutcalc.eval('lineEnter', line)}
+          onLineEnter={(line: string) => nutcalc.eval("lineEnter", line)}
           onEscape={() => editorRef.current?.focus()}
-          onLoaded={(x: ReplManager) => repl.current = x} />
+          onLoaded={(x: ReplManager) => (repl.current = x)}
+        />
       </div>
     </>
   );
