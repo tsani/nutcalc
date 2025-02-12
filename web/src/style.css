@@ -10,6 +10,7 @@ body {
   max-width: 12in;
   height: 100%;
   margin: 0 auto;
+  background-color: #fdf6e3;
 }
 
 #app {
@@ -32,12 +33,15 @@ body {
 }
 
 .nutcalc-editor {
-  width: 65%;
-  height: 80vh;
+  width: 60%;
+  height: 85vh;
+  padding: 0.25ex;
+  border: 1px solid #657b83;
 }
 
 .nutcalc-repl {
   background: black;
   padding: 4px;
-  width: 30%;
+  width: 35%;
+  height: 85vh;
 }
