@@ -158,7 +158,7 @@ def definition_stmt():
         return FoodStmt(lhs, weight, rhs)
 
 stmt_ = alt(
-    (operator('print') >> expr).mark().combine(
+    (operator('print') | operator('facts') >> expr).mark().combine(
         lambda start, e, end: PrintStmt(e, location=SourceSpan(start, end))
     ),
     definition_stmt,
