@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "preact/hooks";
+import { useCallback, useEffect, useRef } from "preact/hooks";
 import { Terminal } from "@xterm/xterm";
+import { FitAddon } from '@xterm/addon-fit';
 import "@xterm/xterm/css/xterm.css";
 
 const BACKSPACE = "\u007F";
@@ -218,6 +219,11 @@ export default function Repl({
   onEscape: handleEscape,
 }) {
   const terminalRef = useRef(null);
+  const fitAddonRef = useRef(null);
+
+  const resizeCallback = useCallback(() => {
+    fitAddonRef.current.fit();
+  }, []);
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -226,8 +232,12 @@ export default function Repl({
       cursorBlink: true,
       rows: 24,
     });
+    fitAddonRef.current = new FitAddon();
+    xterm.loadAddon(fitAddonRef.current);
+    window.addEventListener('resize', resizeCallback);
 
     xterm.open(terminalRef.current);
+    fitAddonRef.current.fit();
     const repl = ReplManager(xterm);
     repl.write("Welcome to Nutcalc!\r\n\r\n> ");
     repl.onLineEnter(handleLineEnter);
@@ -235,6 +245,7 @@ export default function Repl({
     handleLoaded?.(repl);
     return () => {
       repl.dispose();
+      window.removeEventListener('resize', resizeCallback);
     };
   }, [terminalRef]);
 
