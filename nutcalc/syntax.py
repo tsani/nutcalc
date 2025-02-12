@@ -14,8 +14,11 @@ class SourceSpan:
     def as_prefix(self):
         return ''.join([
             '' if self.filename is None else self.filename + ":",
-            f'{self.start[0]}:{self.start[1]}:',
+            f'{self.start[0]+1}:{self.start[1]}:',
         ])
+        # increment line number because parsy starts counting lines from 0
+        # whereas any reasonable human-facing text editor says the first line is
+        # line number 1.
 
 @dataclass
 class Located:
