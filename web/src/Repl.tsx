@@ -3,6 +3,10 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from '@xterm/addon-fit';
 import "@xterm/xterm/css/xterm.css";
 
+const GREETING = "Welcome to Nutcalc!\r\n" +
+  "- Ctrl+Enter: load editor into REPL\r\n" +
+  "- Ctrl+C: switch from REPL back to editor"
+
 const BACKSPACE = "\u007F";
 const LEFT_ARROW = "\x1B[D";
 const RIGHT_ARROW = "\x1B[C";
@@ -231,6 +235,12 @@ export default function Repl({
     const xterm = new Terminal({
       cursorBlink: true,
       rows: 24,
+      fontSize: 14,
+      fontFamily: 'Consolas, courier new',
+      fontWeight: 'normal',
+      fontWeightBold: 'bold',
+      letterSpacing: 1,
+      lineHeight: 1.2,
     });
     fitAddonRef.current = new FitAddon();
     xterm.loadAddon(fitAddonRef.current);
@@ -239,7 +249,7 @@ export default function Repl({
     xterm.open(terminalRef.current);
     fitAddonRef.current.fit();
     const repl = ReplManager(xterm);
-    repl.write("Welcome to Nutcalc!\r\n\r\n> ");
+    repl.write(`${GREETING}\r\n\r\n> `);
     repl.onLineEnter(handleLineEnter);
     repl.onEscape(handleEscape);
     handleLoaded?.(repl);
