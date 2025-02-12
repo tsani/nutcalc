@@ -19,7 +19,7 @@ class InterpretationError(NutcalcError):
         if self.location is None:
             return self.msg
         else:
-            return self.location.as_prefix() + self.msg
+            return f'{self.location.as_prefix()} {self.msg}'
 
 ###############################################################################
 
@@ -42,7 +42,7 @@ class FoodDB:
     def register(self, food: model.Food, location=None):
         if food.name in self.data:
             raise InterpretationError(
-                f'food {food.name} already defined',
+                f"food '{food.name}' already defined",
                 location=location,
             )
         self.data[food.name] = food
@@ -119,8 +119,8 @@ class Interpreter:
             else:
                 # forbid stuff like `20 g foo weighs 25 g = ...`
                 raise InterpretationError(
-                    f'unit {lhs_qty.unit} already defined for food ' \
-                    '{stmt.lhs.food}',
+                    f"unit '{lhs_qty.unit}' already defined for food " \
+                    f"'{stmt.lhs.food}'",
                     location=stmt.location,
                 )
         else:
@@ -157,7 +157,7 @@ class Interpreter:
         lhs_qty = self._quantity(stmt.lhs.quantity)
         if model.Unit.is_weight(lhs_qty.unit):
             raise InterpretationError(
-                f'unit {lhs_qty.unit} already exists for food {lhs_food.name}',
+                f"unit '{lhs_qty.unit}' already exists for food '{lhs_food.name}'",
                 location=stmt.location,
             )
         self._define_unit(
@@ -176,7 +176,7 @@ class Interpreter:
         validating its unit against a supplied food."""
         if food is not None and qty.unit not in (u.name for u in food.units):
             raise InterpretationError(
-                f'unit {qty.unit} does not exist for food {food.name}',
+                f"unit '{qty.unit}' does not exist for food '{food.name}'",
                 location=qty.location,
             )
         return model.Quantity(qty.count, qty.unit)
@@ -202,7 +202,7 @@ class Interpreter:
                 )
         if qty.unit in (u.name for u in food.units):
             raise InterpretationError(
-                f'unit {qty.unit} already defined for food {food.name}',
+                f"unit '{qty.unit}' already defined for food '{food.name}'",
                 location=location,
             )
         food.define_unit(qty, reference)
