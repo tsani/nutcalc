@@ -53,8 +53,7 @@ export function App() {
     } catch (e) {
       output = e?.toString();
     }
-    output = output || "Module loaded";
-    repl.current?.paste(output);
+    if (output) repl.current?.paste(output);
   }
 
   const loadRootModule = () =>
