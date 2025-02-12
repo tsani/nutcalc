@@ -5,9 +5,10 @@ import Editor, { OnMount } from "@monaco-editor/react";
 
 import Repl, { ReplManager } from "./Repl";
 import useNutcalc from "./hooks/useNutcalc";
+import useLocalStorage from "./hooks/useLocalStorage";
+import EDITOR_STARTER_CODE from "./starter-code";
 
 import "./style.css";
-import useLocalStorage from "./hooks/useLocalStorage";
 
 export function App() {
   const editorRef = useRef(null);
@@ -16,7 +17,7 @@ export function App() {
   const nutcalc = useNutcalc();
   const [editorContent, setEditorContent] = useLocalStorage(
     "editor-module-root",
-    "",
+    EDITOR_STARTER_CODE,
     1000,
   );
 
