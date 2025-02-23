@@ -109,9 +109,9 @@ function setupNutcalcLanguage(monaco) {
       ],
       food: [
         ["\\s+", "white"],
-        ["'[^']*'", "function"],
-        ['"[^"]*"', "function"],
-        ["\\b[a-zA-Z][0-9a-zA-Z]*\\b", "function"],
+        ["'[^']*'", { token: "function", next: "@root" }],
+        ['"[^"]*"', { token: "function", next: "@root" }],
+        ["\\b[a-zA-Z][0-9a-zA-Z]*\\b", { token: "function", next: "@root" }],
         ["", "", "@pop"],
       ],
     },
