@@ -36,7 +36,7 @@ def parse_args():
     targets = []
 
     i = 1
-    while i < len(sys.argv) - 1:
+    while i < len(sys.argv):
         arg = sys.argv[i]
 
         if arg == '-h':
