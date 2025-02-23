@@ -3,9 +3,9 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite",
-		"build": "vite build",
+		"build": "vite build && find dist -type d -name __pycache__ -exec rm -r {} \\;",
 		"preview": "vite preview",
-        "deploy": "rsync -r dist/ j:/srv/http/nutcalc/"
+        "deploy": "rsync -r --delete dist/ j:/srv/http/nutcalc/"
 	},
 	"dependencies": {
 		"@monaco-editor/react": "^4.6.0",
