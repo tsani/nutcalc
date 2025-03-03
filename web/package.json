@@ -5,10 +5,11 @@
 		"dev": "vite",
 		"build": "vite build && find dist -type d -name __pycache__ -exec rm -r {} \\;",
 		"preview": "vite preview",
-        "deploy": "rsync -r --delete dist/ j:/srv/http/nutcalc/"
+		"deploy": "rsync -r --delete dist/ j:/srv/http/nutcalc/"
 	},
 	"dependencies": {
 		"@monaco-editor/react": "^4.6.0",
+		"@supabase/supabase-js": "^2.49.1",
 		"@xterm/addon-fit": "^0.10.0",
 		"@xterm/xterm": "^5.5.0",
 		"brython": "^3.13.0",
