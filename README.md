@@ -4,7 +4,10 @@ Nutcalc is:
 - a calculator for nutrition facts
 - a declarative programming language for computing nutritional information of foods, meals,
   recipes
-- a simple way to journal your meals and track your macros.
+- a simple way to journal your meals and track your macros
+- designed to integrate best into a text editing, terminal-based workflow.
+
+Try the online demo [here](https://nutcalc.jerrington.me/).
 
 ## Examples
 
@@ -121,6 +124,8 @@ nutcalc>
 
 Nutcalc uses the _inductive model of food._ I designed this model to enable arbitrary layering of
 foods upon foods to uniformly represent recipes, meals, meal plans, etc.
+I wrote a [blog post](https://jerrington.me/posts/2025-02-20-induction-on-food.html) about the
+inductive model. I explain the gist of it here below.
 
 A _Food_ is defined as either:
 
