@@ -120,6 +120,82 @@ copper: 0.11 mg
 nutcalc>
 ```
 
+### Compute a shopping list
+
+Since August 2025, Nutcalc supports a system of arbitrary tags that can be attached to entries when
+making a definition. These tags are in general used to guide different traversals of a Food tree.
+For now, the only meaningful tags are `buy` and `use`, related to the new ShoppingList feature.
+
+Suppose I'm preparing to batch cook a lot of chili.
+I can write out the shopping list for it by marking the constitutents of the `'chili batch aug
+2025'` with the `buy` tag. (In practice I won't know ahead of time the weight of the finished
+product, so at this point I would leave off the `weighs` clause. After cooking the chili and
+weighing the finished product I would go and add the weighs clause.)
+
+```nutcalc
+1/2 cup 'KS diced tomatoes' weighs 126 g:
+- 1 g protein + 6 g carbs
+- 140 mg sodium + 261 mg potassium
+250 ml 'KS diced tomatoes' = 1 cup
+1 'big can' 'KS diced tomatoes' = 800 ml
+
+224 g 'bottom blade roast':
+- 48 g fat + 38.4 g protein
+- 605 mg potassium + 160 mg cholesterol
+
+1 cup 'dry white beans' weighs 202 g:
+- 1.7 g fat + 122 g carbs + 47 g protein
+- 21 mg iron
+
+1 x 'chili batch aug 2025' weighs 8*1.2 + 1.5 + 0.6 kg:
+- buy 4 kg 'bottom blade roast'
+- buy 1.5 kg 'dry white beans'
+- buy 3 'big can' 'KS diced tomatoes'
+```
+
+Now that I've cooked the chili, I want to prepare a meal plan for the upcoming week. The goal is
+that after writing the meal plan, we can extract both its nutrition facts and the shopping list.
+In this meal plan, for simplicity and ease of demonstration, I'll assume I'll eat the same thing
+every day: `375 g 'KS greek yogurt'` and `450 g 'chili batch aug 2025'`.
+
+```
+3/4 cup 'KS greek yogurt' weighs 175 g:
+- 17 g protein + 6 g carbs + 200 mg calcium
+
+1 cup 'dry white rice' weighs 200 g:
+- 1 g fat + 158 g carbs + 13 g protein
+- 2 mg sodium + 1.6 mg iron
+
+1 day 'meal plan':
+- buy 375 g 'KS greek yogurt'
+- use 450 g 'chili batch aug 2025'
+- buy 1 cup 'dry white rice'
+```
+
+After loading this nut file into the nutcalc repl, I can now compute the shopping list for five
+days of this meal plan easily.
+
+```
+nutcalc> shop 5 day 'meal plan'
+1875.00 g KS greek yogurt
+5.00 cup dry white rice
+nutcalc> facts 1 day 'meal plan'
+energy: 1510.46 kcal
+protein: 89.96 g
+fat: 34.45 g
+carbs: 210.13 g
+calcium: 428.57 mg
+iron: 7.60 mg
+potassium: 608.26 mg
+sodium: 105.38 mg
+cholesterol: 109.89 mg
+```
+
+The shopping list is computed by recursively traversing the items of the given expression, `5 day
+'meal plan'`, multiplying by the quantity at each stage. Items marked with `buy` are collected into
+the shopping list. Items marked with `use`, on the other hand, block traversal. This allows a meal
+plan to refer to something previously cooked (with its own shopping list).
+
 ## How it works -- technical and mathematical details
 
 Nutcalc uses the _inductive model of food._ I designed this model to enable arbitrary layering of
