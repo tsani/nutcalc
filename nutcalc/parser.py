@@ -108,6 +108,8 @@ factor = number | (operator("(") >> arith << operator(")")).desc(
 
 ### FOOD EXPRESSIONS ##########################################################
 
+tags = ident.sep_by(operator(','))
+
 quantity = seq(arith, ident).mark().combine(
     lambda start, x, end: Quantity(
         count=x[0],
@@ -115,10 +117,11 @@ quantity = seq(arith, ident).mark().combine(
         location=SourceSpan(start, end),
     ),
 )
-quantified_food = seq(quantity, ident).mark().combine(
+quantified_food = seq(tags, quantity, ident).mark().combine(
     lambda start, x, end: QuantifiedFood(
-        quantity=x[0],
-        food=x[1],
+        tags=x[0],
+        quantity=x[1],
+        food=x[2],
         location=SourceSpan(start, end),
     ),
 )
@@ -144,7 +147,7 @@ def definition_stmt():
 
         match rhs:
             case Quantity():
-                rhs = [QuantifiedFood(rhs, lhs.food)]
+                rhs = [QuantifiedFood(quantity=rhs, tags=[], food=lhs.food)]
 
         if len(rhs) == 1 and rhs[0].food == lhs.food:
             if weight is not None:
@@ -160,6 +163,9 @@ def definition_stmt():
 stmt_ = alt(
     (operator('print') | operator('facts') >> expr).mark().combine(
         lambda start, e, end: PrintStmt(e, location=SourceSpan(start, end))
+    ),
+    (operator('shop') >> expr).mark().combine(
+        lambda start, e, end: ShopStmt(e, location=SourceSpan(start, end))
     ),
     definition_stmt,
 )

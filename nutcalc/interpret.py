@@ -60,6 +60,34 @@ class FoodDB:
 
 ###############################################################################
 
+def nutrition_facts(qf: model.QuantifiedFood):
+    nut = None
+    match qf.food:
+        case model.Nutrient():
+            nut = model.NutritionFacts(data={qf.food.name: qf.food.reference_quantity})
+        case model.CompoundFood():
+            nut = model.NutritionFacts.empty()
+            for constituent in qf.food.constituents:
+                nut += nutrition_facts(constituent)
+    return nut * qf.scale_factor
+
+def shopping_list(qf: model.QuantifiedFood):
+    if 'use' in qf.tags:
+        return model.ShoppingList.empty()
+    if 'buy' in qf.tags:
+        return model.ShoppingList.singleton(qf)
+    match qf.food:
+        case model.Nutrient():
+            return model.ShoppingList.empty()
+        case model.CompoundFood():
+            slist = model.ShoppingList.empty()
+            for constituent in qf.food.constituents:
+                slist += shopping_list(constituent)
+            return slist * qf.scale_factor
+    import pdb;pdb.set_trace()
+
+###############################################################################
+
 class Interpreter:
     def __init__(self, foodDB: FoodDB | None = None, output_stream=None):
         self.output_stream = \
@@ -89,6 +117,8 @@ class Interpreter:
                 self._weight_stmt(stmt)
             case syntax.PrintStmt():
                 self._print_stmt(stmt)
+            case syntax.ShopStmt():
+                self._shop_stmt(stmt)
             case _:
                 assert False, f'statement {stmt} is handled'
 
@@ -97,8 +127,15 @@ class Interpreter:
     def _print_stmt(self, stmt: syntax.PrintStmt):
         qfs = [self._quantified_food(part) for part in stmt.body]
         print(sum(
-            (qf.nutrition_facts for qf in qfs),
+            (nutrition_facts(qf) for qf in qfs),
             start=model.NutritionFacts.empty(),
+        ).pretty, file=self.output_stream)
+
+    def _shop_stmt(self, stmt: syntax.ShopStmt):
+        qfs = [self._quantified_food(part) for part in stmt.body]
+        print(sum(
+            (shopping_list(qf) for qf in qfs),
+            start=model.ShoppingList.empty(),
         ).pretty, file=self.output_stream)
 
     def _food_stmt(self, stmt: syntax.FoodStmt):
@@ -184,7 +221,11 @@ class Interpreter:
     def _quantified_food(self, syn: syntax.QuantifiedFood) -> model.QuantifiedFood:
         food = self.foodDB.get(syn.food)
         qty = self._quantity(syn.quantity, food)
-        return model.QuantifiedFood(qty, food)
+        return model.QuantifiedFood(
+            quantity=qty,
+            tags=set(syn.tags),
+            food=food,
+        )
 
     def _is_new_food(self, syn: syntax.QuantifiedFood) -> bool:
         return not self.foodDB.has(syn.food)

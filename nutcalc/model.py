@@ -42,12 +42,6 @@ class Nutrient:
     def reference_quantity(self):
         return Quantity(count=1, unit=self.natural_unit)
 
-    @property
-    def nutrition_facts(self):
-        return NutritionFacts(
-            data={ self.name: self.reference_quantity },
-        )
-
 @dataclass
 class CompoundFood:
     """A food consisting of several constituent foods, and possessing several
@@ -124,13 +118,6 @@ class CompoundFood:
     def reference_quantity(self):
         return Quantity(count=100, unit=G.name)
 
-    @property
-    def nutrition_facts(self):
-        nut = NutritionFacts.empty()
-        for constituent in self.constituents:
-            nut += constituent.nutrition_facts
-        return nut
-
     def define_unit(self, qty: Quantity, reference: Quantity):
         """Defines a new unit, expressed as a quantity, as a computed ratio
         with a reference quantity using an existing unit."""
@@ -179,12 +166,29 @@ class QuantifiedFood:
     The unit name contained in the Quantity is valid for the Food.
     For a Nutrient, that means it's the same as the Nutrient's natural unit.
     For a CompoundFood, that means it's among the units of that food.
-    A QuantifiedFood can be multiplied by a scalar."""
+    - A QuantifiedFood can be multiplied by a scalar.
+    - Two QuantifiedFoods may be added, provided they refer to the same food.
+    """
     quantity: Quantity
+    tags: set[str]
     food: Food
 
     def __mul__(self, k):
-        return QuantifiedFood(quantity=self.quantity * k, food=self.food)
+        return QuantifiedFood(
+            quantity=self.quantity * k,
+            food=self.food,
+            tags=self.tags,
+        )
+
+    def __add__(self, other):
+        if self.food is not other.food: # or compare names?
+            raise RuntimeError('cannot add QuantifiedFoods of different Foods')
+        # TODO be smarter about the unit to use in the summed Quantity
+        return QuantifiedFood(
+            quantity=Quantity(count=self.weight + other.weight, unit=G.name),
+            food=self.food,
+            tags=self.tags.union(other.tags),
+        )
 
     @property
     def weight(self):
@@ -192,11 +196,66 @@ class QuantifiedFood:
         return self.quantity.weigh(self.food)
 
     @property
-    def nutrition_facts(self):
-        nut = self.food.nutrition_facts
-        reference_weight = self.food.reference_quantity.weigh(self.food)
-        scale_factor = self.weight / reference_weight
-        return nut * scale_factor
+    def reference_weight(self):
+        return self.food.reference_quantity.weigh(self.food)
+
+    @property
+    def scale_factor(self):
+        """How many multiples of the underlying food's reference quantity are
+        contained in this QuantifiedFood?"""
+        return self.weight / self.reference_weight
+
+    @property
+    def pretty(self):
+        return f'{self.quantity} {self.food.name}'
+
+@dataclass
+class ShoppingList:
+    """A set of QuantifiedFoods with some arithmetic operations"""
+    @staticmethod
+    def singleton(qf: QuantifiedFood):
+        return ShoppingList(items={ qf.food.name: qf })
+
+    @staticmethod
+    def empty():
+        return ShoppingList(items={})
+
+    items: dict[FoodName, QuantifiedFood]
+
+    def __add__(self, other):
+        if not isinstance(other, ShoppingList):
+            raise RuntimeError(
+                'cannot add ShoppingList to ' + str(type(other)),
+            )
+        items = dict(self.items)
+        for qf in other.items.values():
+            if qf.food.name in items:
+                items[qf.food.name] += qf
+            else:
+                items[qf.food.name] = qf
+        return ShoppingList(items)
+
+    def __mul__(self, k):
+        """Multiplies each QuantifiedFood in the list by a scalar."""
+        if not isinstance(k, float):
+            raise RuntimeError(
+                'cannot multiply ShoppingList with ' + str(type(k)),
+            )
+        return ShoppingList(
+            items={
+                name: qf * k
+                for name, qf
+                in self.items.items()
+            },
+        )
+
+    @property
+    def pretty(self):
+        return '\n'.join(
+            (qf.pretty for qf in self.items.values())
+            if len(self.items) else
+            ['<empty shopping list>']
+        )
 
 @dataclass
 class NutritionFacts:
@@ -241,9 +300,6 @@ class NutritionFacts:
             if k in self.data:
                 rows.append(f'{k}: {self.data[k]}')
         return '\n'.join(rows)
-
-def nutrition_facts(q: Quantity, food: Food):
-    return QuantifiedFood(quantity=q, food=food).nutrition_facts
 
 ### GLOBAL CONSTANTS: ###
 

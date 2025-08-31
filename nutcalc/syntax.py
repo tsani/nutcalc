@@ -71,10 +71,15 @@ class PrintStmt:
 
 @located
 @dataclass
+class ShopStmt:
+    body: Expr
+
+@located
+@dataclass
 class ImportStmt:
     path: str
 
-Stmt = FoodStmt | WeightStmt | PrintStmt
+Stmt = FoodStmt | WeightStmt | PrintStmt | ShopStmt
 
 @located
 @dataclass
@@ -86,6 +91,7 @@ class Quantity:
 @dataclass
 class QuantifiedFood:
     quantity: Quantity
+    tags: list[str]
     food: str
 
 @located
